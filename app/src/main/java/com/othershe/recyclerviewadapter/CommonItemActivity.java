@@ -24,7 +24,7 @@ public class CommonItemActivity extends AppCompatActivity {
 
     private RecyclerView mRecyclerView;
 
-    private boolean isFailed = true;
+    private boolean isFailed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +41,7 @@ public class CommonItemActivity extends AppCompatActivity {
 
         //初始化 开始加载更多的loading View
         mAdapter.setLoadingView(R.layout.load_loading_layout);
+        mAdapter.setLoadingHeaderView(R.layout.load_loading_layout);
         //加载失败，更新footer view提示
         mAdapter.setLoadFailedView(R.layout.load_failed_layout);
         //加载完成，更新footer view提示
@@ -80,15 +81,15 @@ public class CommonItemActivity extends AppCompatActivity {
                 }
                 //刷新数据
                 mAdapter.setNewData(data);
-
-                TextView t1 = new TextView(CommonItemActivity.this);
-                t1.setText("我是header-1");
-                mAdapter.addHeaderView(t1);
-                TextView t2 = new TextView(CommonItemActivity.this);
-                t2.setText("我是header-2");
-                mAdapter.addHeaderView(t2);
+//
+//                TextView t1 = new TextView(CommonItemActivity.this);
+//                t1.setText("我是header-1");
+//                mAdapter.addHeaderView(t1);
+//                TextView t2 = new TextView(CommonItemActivity.this);
+//                t2.setText("我是header-2");
+//                mAdapter.addHeaderView(t2);
             }
-        }, 2000);
+        }, 1000);
     }
 
 
@@ -112,6 +113,6 @@ public class CommonItemActivity extends AppCompatActivity {
                     mAdapter.setLoadMoreData(data);
                 }
             }
-        }, 2000);
+        }, 1000);
     }
 }

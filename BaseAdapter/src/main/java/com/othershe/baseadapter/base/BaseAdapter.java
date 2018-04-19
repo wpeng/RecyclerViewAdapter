@@ -24,6 +24,7 @@ import java.util.List;
 public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static final int TYPE_COMMON_VIEW = 100001;//普通类型 Item
     private static final int TYPE_FOOTER_VIEW = 100002;//footer类型 Item
+    private static final int TYPE_HEADER_VIEW = 100000;//footer类型 Item
     private static final int TYPE_EMPTY_VIEW = 100003;//empty view，即初始化加载时的提示View
     private static final int TYPE_NODATA_VIEW = 100004;//初次加载无数据的默认空白view
     private static final int TYPE_RELOAD_VIEW = 100005;//初次加载无数据的可重新加载或提示用户的view
@@ -41,15 +42,18 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     private boolean isRemoveEmptyView;
 
     private View mLoadingView; //分页加载中view
+    private View mLoadingHeaderView;
     private View mLoadFailedView; //分页加载失败view
     private View mLoadEndView; //分页加载结束view
     private View mEmptyView; //首次预加载view
     private View mReloadView; //首次预加载失败、或无数据的view
     private RelativeLayout mFooterLayout;//footer view
+    private RelativeLayout mHeaderLayout;//footer view
 
     private boolean isReset;//开始重新加载数据
 
     private boolean isLoading;//是否正在加载更多
+    private boolean isLoadingHeader;
 
     protected abstract int getViewType(int position, T data);
 
@@ -68,6 +72,12 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
 
         ViewHolder viewHolder = null;
         switch (viewType) {
+            case TYPE_HEADER_VIEW:
+                if (mHeaderLayout == null) {
+                    mHeaderLayout = new RelativeLayout(mContext);
+                }
+                viewHolder = ViewHolder.create(mHeaderLayout);
+                break;
             case TYPE_FOOTER_VIEW:
                 if (mFooterLayout == null) {
                     mFooterLayout = new RelativeLayout(mContext);
@@ -92,7 +102,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         if (mDatas.isEmpty() && mEmptyView != null) {
             return 1;
         }
-        return mDatas.size() + getFooterViewCount() + getHeaderCount();
+        return mDatas.size() + getFooterViewCount() + getHeaderViewCount();
     }
 
     @Override
@@ -112,10 +122,10 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         if (isFooterView(position)) {
             return TYPE_FOOTER_VIEW;
         } else if (isHeaderView(position)) {
-            return mHeaderViews.keyAt(position);
+            return TYPE_HEADER_VIEW;
         }
 
-        return getViewType(position - getHeaderCount(), mDatas.get(position - getHeaderCount()));
+        return getViewType(position - getHeaderCount(), mDatas.get(position - getHeaderViewCount()));
     }
 
     /**
@@ -144,15 +154,19 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     protected boolean isCommonItemView(int viewType) {
         return viewType != TYPE_EMPTY_VIEW && viewType != TYPE_FOOTER_VIEW
                 && viewType != TYPE_NODATA_VIEW && viewType != TYPE_RELOAD_VIEW
-                && !(viewType >= TYPE_BASE_HEADER_VIEW);
+                && viewType != TYPE_HEADER_VIEW;
     }
 
     private boolean isHeaderView(int position) {
-        return position < getHeaderCount();
+        return mOpenLoadMore && position == 0;
     }
 
     protected int getHeaderCount() {
-        return mHeaderViews.size();
+        return getHeaderViewCount();
+    }
+
+    protected int getHeaderViewCount() {
+        return !mDatas.isEmpty() ? 1 : 0;
     }
 
     /**
@@ -161,8 +175,20 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
      * @param view
      */
     public void addHeaderView(View view) {
-        mHeaderViews.put(TYPE_BASE_HEADER_VIEW + getHeaderCount(), view);
+        if (view == null) {
+            return;
+        }
+
+        if (mHeaderLayout == null) {
+            mHeaderLayout = new RelativeLayout(mContext);
+        }
+        removeHeaderView();
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        mHeaderLayout.addView(view, params);
     }
+
+    private LinearLayoutManager linearLayoutManager;
 
     /**
      * StaggeredGridLayoutManager模式时，HeaderView、FooterView可占据一行
@@ -192,6 +218,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     public void onAttachedToRecyclerView(RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
         final RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
+        linearLayoutManager = (LinearLayoutManager) layoutManager;
         if (layoutManager instanceof GridLayoutManager) {
             final GridLayoutManager gridManager = ((GridLayoutManager) layoutManager);
             gridManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
@@ -278,6 +305,10 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         mFooterLayout.removeAllViews();
     }
 
+    private void removeHeaderView() {
+        mHeaderLayout.removeAllViews();
+    }
+
     /**
      * 添加新的footer view
      *
@@ -345,6 +376,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         mDatas.clear();
         mDatas.addAll(datas);
         notifyDataSetChanged();
+        linearLayoutManager.scrollToPositionWithOffset(1, 0);
     }
 
     public void remove(int position) {
@@ -364,6 +396,11 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
 
     public void setLoadingView(int loadingId) {
         setLoadingView(Util.inflate(mContext, loadingId));
+    }
+
+    public void setLoadingHeaderView(int loadingId) {
+        mLoadingHeaderView = Util.inflate(mContext, loadingId);
+        addHeaderView(mLoadingHeaderView);
     }
 
     /**
