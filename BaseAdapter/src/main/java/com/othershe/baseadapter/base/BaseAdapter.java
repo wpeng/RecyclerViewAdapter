@@ -47,7 +47,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     private View mLoadingView; //分页加载中view
     private View mLoadingHeaderView;
     private View mLoadHeaderFailedView; //分页加载失败view
-    private View mLoadHeanderEndView; //分页加载结束view
+    private View mLoadHeaderEndView; //分页加载结束view
 
     private View mLoadFailedView; //分页加载失败view
     private View mLoadEndView; //分页加载结束view
@@ -269,7 +269,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
                             }
                         } else {
                             if (linearLayoutManager.findFirstVisibleItemPosition() <= 1) {
-                                scrollLoadPreviousMore();
+                                scrollLoadHeaderMore();
                             }
                         }
                     }
@@ -311,9 +311,9 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     }
 
     /**
-     * 到达底部开始刷新
+     * 到达头部开始刷新
      */
-    private void scrollLoadPreviousMore() {
+    private void scrollLoadHeaderMore() {
         if (isReset) {
             return;
         }
@@ -321,7 +321,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         if (mHeaderLayout.getChildAt(0) == mLoadingHeaderView && !isLoadingHeader) {
             if (mLoadMoreListener != null) {
                 isLoadingHeader = true;
-                mLoadMoreListener.onLoadPreviousMore();
+                mLoadMoreListener.onLoadHeaderMore();
             }
         }
     }
@@ -391,9 +391,9 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         notifyItemInserted(size + getHeaderCount());
     }
 
-    public void setLoadPreviousMoreData(List<T> datas) {
+    public void setLoadHeaderMoreData(List<T> datas) {
         isLoadingHeader = false;
-        int size = mDatas.size();
+        int size = datas.size();
         Log.i(TAG, "load header data " + size);
         mDatas.addAll(0, datas);
         notifyItemRangeInserted(getHeaderCount(), size);
@@ -483,7 +483,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     }
 
     public void setLoadHeaderEndView(int loadEndId) {
-        mLoadHeanderEndView = Util.inflate(mContext, loadEndId);
+        mLoadHeaderEndView = Util.inflate(mContext, loadEndId);
     }
 
     /**
@@ -570,8 +570,8 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
      * 数据加载完成
      */
     public void loadHeaderEnd() {
-        if (mLoadHeanderEndView != null) {
-            addHeaderView(mLoadHeanderEndView);
+        if (mLoadHeaderEndView != null) {
+            addHeaderView(mLoadHeaderEndView);
         }
     }
 
@@ -585,7 +585,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
             public void onClick(View view) {
                 addHeaderView(mLoadingHeaderView);
                 if (mLoadMoreListener != null) {
-                    mLoadMoreListener.onLoadPreviousMore();
+                    mLoadMoreListener.onLoadHeaderMore();
                 }
             }
         });

@@ -11,5 +11,5 @@ public interface OnLoadMoreListener {
      */
     void onLoadMore(boolean isReload);
 
-    void onLoadPreviousMore();
+    void onLoadHeaderMore();
 }

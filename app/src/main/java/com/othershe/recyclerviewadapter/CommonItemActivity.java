@@ -8,7 +8,6 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.othershe.baseadapter.interfaces.OnItemClickListener;
@@ -57,7 +56,7 @@ public class CommonItemActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onLoadPreviousMore() {
+            public void onLoadHeaderMore() {
                 loadPreviousMore();
             }
         });
@@ -83,9 +82,10 @@ public class CommonItemActivity extends AppCompatActivity {
             @Override
             public void run() {
                 List<String> data = new ArrayList<>();
-                for (int i = 0; i < 10; i++) {
-                    data.add("item--" + i);
+                for (int i = nextIndex; i < nextIndex + 10; i++) {
+                    data.add("" + i);
                 }
+                nextIndex += 10;
                 //刷新数据
                 mAdapter.setNewData(data);
 //
@@ -106,16 +106,17 @@ public class CommonItemActivity extends AppCompatActivity {
             @Override
             public void run() {
 
-                if (mAdapter.getItemCount() >= 10 && isFailed) {
+                if (mAdapter.getItemCount() >= 20 && isFailed) {
                     isFailed = false;
                     mAdapter.loadFailed();
-                } else if (mAdapter.getItemCount() >= 20) {
+                } else if (mAdapter.getItemCount() >= MAX_COUNT) {
                     mAdapter.loadEnd();
                 } else {
                     final List<String> data = new ArrayList<>();
-                    for (int i = 0; i < 10; i++) {
-                        data.add("item " + (mAdapter.getDataCount() + i));
+                    for (int i = nextIndex; i < nextIndex + 10; i++) {
+                        data.add("" + i);
                     }
+                    nextIndex += 10;
                     //刷新数据
                     mAdapter.setLoadMoreData(data);
                 }
@@ -123,26 +124,31 @@ public class CommonItemActivity extends AppCompatActivity {
         }, 1000);
     }
 
+    private static final int MAX_COUNT = 100;
+    private int previousIndex = 0;
+    private int nextIndex = 0;
+
     private void loadPreviousMore() {
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
 
-                if (mAdapter.getItemCount() >= 10 && isFailed) {
+                if (mAdapter.getItemCount() >= 20 && isFailed) {
                     isFailed = false;
                     mAdapter.loadHeaderFailed();
-                } else if (mAdapter.getItemCount() >= 20) {
+                } else if (mAdapter.getItemCount() >= MAX_COUNT) {
                     mAdapter.loadHeaderEnd();
                 } else {
                     final List<String> data = new ArrayList<>();
-                    for (int i = 0; i >= -10; i--) {
-                        data.add("item " + i);
+                    for (int i = previousIndex - 10; i < previousIndex; i++) {
+                        data.add("" + i);
                     }
+                    previousIndex -= 10;
                     //刷新数据
-                    mAdapter.setLoadPreviousMoreData(data);
+                    mAdapter.setLoadHeaderMoreData(data);
                 }
             }
-        }, 1000);
+        }, 5000);
     }
 }

@@ -62,7 +62,7 @@ public class GridListActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onLoadPreviousMore() {
+            public void onLoadHeaderMore() {
 
             }
         });

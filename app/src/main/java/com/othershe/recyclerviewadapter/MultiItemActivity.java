@@ -59,7 +59,7 @@ public class MultiItemActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onLoadPreviousMore() {
+            public void onLoadHeaderMore() {
 
             }
         });

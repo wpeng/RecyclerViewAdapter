@@ -79,7 +79,7 @@ public class InitLoadActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onLoadPreviousMore() {
+            public void onLoadHeaderMore() {
 
             }
         });
