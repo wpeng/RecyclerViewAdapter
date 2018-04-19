@@ -6,7 +6,6 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
@@ -24,7 +23,6 @@ import java.util.List;
  */
 public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static final int TYPE_COMMON_VIEW = 100001;//普通类型 Item
-    private static final int TYPE_HEADER_VIEW = 100001;
     private static final int TYPE_FOOTER_VIEW = 100002;//footer类型 Item
     private static final int TYPE_EMPTY_VIEW = 100003;//empty view，即初始化加载时的提示View
     private static final int TYPE_NODATA_VIEW = 100004;//初次加载无数据的默认空白view
@@ -43,13 +41,11 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     private boolean isRemoveEmptyView;
 
     private View mLoadingView; //分页加载中view
-    private View mLoadingPreviousView;
     private View mLoadFailedView; //分页加载失败view
     private View mLoadEndView; //分页加载结束view
     private View mEmptyView; //首次预加载view
     private View mReloadView; //首次预加载失败、或无数据的view
     private RelativeLayout mFooterLayout;//footer view
-    private RelativeLayout mHeaderLayout;
 
     private boolean isReset;//开始重新加载数据
 
@@ -65,19 +61,13 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-//
-//        if (mHeaderViews.get(viewType) != null) {
-//            return ViewHolder.create(mHeaderViews.get(viewType));
-//        }
+
+        if (mHeaderViews.get(viewType) != null) {
+            return ViewHolder.create(mHeaderViews.get(viewType));
+        }
 
         ViewHolder viewHolder = null;
         switch (viewType) {
-            case TYPE_HEADER_VIEW:
-                if (mHeaderLayout == null) {
-                    mHeaderLayout = new RelativeLayout(mContext);
-                }
-                viewHolder = ViewHolder.create(mHeaderLayout);
-                break;
             case TYPE_FOOTER_VIEW:
                 if (mFooterLayout == null) {
                     mFooterLayout = new RelativeLayout(mContext);
@@ -122,7 +112,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         if (isFooterView(position)) {
             return TYPE_FOOTER_VIEW;
         } else if (isHeaderView(position)) {
-            return TYPE_HEADER_VIEW;
+            return mHeaderViews.keyAt(position);
         }
 
         return getViewType(position - getHeaderCount(), mDatas.get(position - getHeaderCount()));
@@ -154,7 +144,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     protected boolean isCommonItemView(int viewType) {
         return viewType != TYPE_EMPTY_VIEW && viewType != TYPE_FOOTER_VIEW
                 && viewType != TYPE_NODATA_VIEW && viewType != TYPE_RELOAD_VIEW
-                && viewType != TYPE_HEADER_VIEW;
+                && !(viewType >= TYPE_BASE_HEADER_VIEW);
     }
 
     private boolean isHeaderView(int position) {
@@ -162,17 +152,17 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     }
 
     protected int getHeaderCount() {
-        return mOpenLoadMore && !mDatas.isEmpty() ? 1 : 0;
+        return mHeaderViews.size();
     }
-//
-//    /**
-//     * 添加HeaderView
-//     *
-//     * @param view
-//     */
-//    public void addHeaderView(View view) {
-////        mHeaderViews.put(TYPE_BASE_HEADER_VIEW + getHeaderCount(), view);
-//    }
+
+    /**
+     * 添加HeaderView
+     *
+     * @param view
+     */
+    public void addHeaderView(View view) {
+        mHeaderViews.put(TYPE_BASE_HEADER_VIEW + getHeaderCount(), view);
+    }
 
     /**
      * StaggeredGridLayoutManager模式时，HeaderView、FooterView可占据一行
@@ -230,16 +220,12 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         }
 
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-
-            private boolean scrollUp = true;
-
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                     if (!isAutoLoadMore && findLastVisibleItemPosition(layoutManager) + 1 == getItemCount()) {
                         scrollLoadMore();
-                        Log.i("test", "scrollLoadMore onScrollStateChanged");
                     }
                 }
             }
@@ -247,16 +233,12 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
-                scrollUp = dy > 0;
-//                Log.i("test", "scrollUp " + scrollUp);
                 if (isAutoLoadMore && findLastVisibleItemPosition(layoutManager) + 1 == getItemCount()) {
                     if (mDatas.isEmpty() && mEmptyView != null) {
                         return;
                     }
-                    Log.i("test", "scrollLoadMore onScrolled");
                     scrollLoadMore();
                 } else if (isAutoLoadMore) {
-//                    Log.i("test", "autoLoadMore false onScrolled");
                     isAutoLoadMore = false;
                 }
             }
@@ -296,10 +278,6 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         mFooterLayout.removeAllViews();
     }
 
-    private void removeHeaderView() {
-        mHeaderLayout.removeAllViews();
-    }
-
     /**
      * 添加新的footer view
      *
@@ -317,20 +295,6 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         mFooterLayout.addView(footerView, params);
-    }
-
-    private void addHeaderView(View footerView) {
-        if (footerView == null) {
-            return;
-        }
-
-        if (mHeaderLayout == null) {
-            mHeaderLayout = new RelativeLayout(mContext);
-        }
-        removeHeaderView();
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT);
-        mHeaderLayout.addView(footerView, params);
     }
 
     /**

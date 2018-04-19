@@ -81,12 +81,12 @@ public class CommonItemActivity extends AppCompatActivity {
                 //刷新数据
                 mAdapter.setNewData(data);
 
-//                TextView t1 = new TextView(CommonItemActivity.this);
-//                t1.setText("我是header-1");
-//                mAdapter.addHeaderView(t1);
-//                TextView t2 = new TextView(CommonItemActivity.this);
-//                t2.setText("我是header-2");
-//                mAdapter.addHeaderView(t2);
+                TextView t1 = new TextView(CommonItemActivity.this);
+                t1.setText("我是header-1");
+                mAdapter.addHeaderView(t1);
+                TextView t2 = new TextView(CommonItemActivity.this);
+                t2.setText("我是header-2");
+                mAdapter.addHeaderView(t2);
             }
         }, 2000);
     }
