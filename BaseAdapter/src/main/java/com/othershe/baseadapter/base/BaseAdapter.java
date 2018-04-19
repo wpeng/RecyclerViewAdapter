@@ -6,6 +6,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
@@ -22,6 +23,8 @@ import java.util.List;
  * Time: 2016/8/29 09:46
  */
 public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+    private static final String TAG = "willie";
+
     static final int TYPE_COMMON_VIEW = 100001;//普通类型 Item
     private static final int TYPE_FOOTER_VIEW = 100002;//footer类型 Item
     private static final int TYPE_HEADER_VIEW = 100000;//footer类型 Item
@@ -37,14 +40,18 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
     protected Context mContext;
     private List<T> mDatas;
     private boolean mOpenLoadMore;//是否开启加载更多
-    private boolean isAutoLoadMore = true;//是否自动加载，当数据不满一屏幕会自动加载
+    private boolean isAutoLoadMore = false;//是否自动加载，当数据不满一屏幕会自动加载
 
     private boolean isRemoveEmptyView;
 
     private View mLoadingView; //分页加载中view
     private View mLoadingHeaderView;
+    private View mLoadHeaderFailedView; //分页加载失败view
+    private View mLoadHeanderEndView; //分页加载结束view
+
     private View mLoadFailedView; //分页加载失败view
     private View mLoadEndView; //分页加载结束view
+
     private View mEmptyView; //首次预加载view
     private View mReloadView; //首次预加载失败、或无数据的view
     private RelativeLayout mFooterLayout;//footer view
@@ -247,12 +254,24 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         }
 
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+
+            private boolean scrolledUp = true;
+
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    if (!isAutoLoadMore && findLastVisibleItemPosition(layoutManager) + 1 == getItemCount()) {
-                        scrollLoadMore();
+                    Log.d("willie", "onScrollStateChanged");
+                    if (!isAutoLoadMore) {
+                        if (scrolledUp) {
+                            if (findLastVisibleItemPosition(layoutManager) + 1 == getItemCount()) {
+                                scrollLoadMore();
+                            }
+                        } else {
+                            if (linearLayoutManager.findFirstVisibleItemPosition() <= 1) {
+                                scrollLoadPreviousMore();
+                            }
+                        }
                     }
                 }
             }
@@ -260,10 +279,13 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
+                scrolledUp = dy >= 0;
+
                 if (isAutoLoadMore && findLastVisibleItemPosition(layoutManager) + 1 == getItemCount()) {
                     if (mDatas.isEmpty() && mEmptyView != null) {
                         return;
                     }
+                    Log.d("willie", "onScrolled load" + isAutoLoadMore);
                     scrollLoadMore();
                 } else if (isAutoLoadMore) {
                     isAutoLoadMore = false;
@@ -284,6 +306,22 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
             if (mLoadMoreListener != null) {
                 isLoading = true;
                 mLoadMoreListener.onLoadMore(false);
+            }
+        }
+    }
+
+    /**
+     * 到达底部开始刷新
+     */
+    private void scrollLoadPreviousMore() {
+        if (isReset) {
+            return;
+        }
+
+        if (mHeaderLayout.getChildAt(0) == mLoadingHeaderView && !isLoadingHeader) {
+            if (mLoadMoreListener != null) {
+                isLoadingHeader = true;
+                mLoadMoreListener.onLoadPreviousMore();
             }
         }
     }
@@ -353,6 +391,16 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         notifyItemInserted(size + getHeaderCount());
     }
 
+    public void setLoadPreviousMoreData(List<T> datas) {
+        isLoadingHeader = false;
+        int size = mDatas.size();
+        Log.i(TAG, "load header data " + size);
+        mDatas.addAll(0, datas);
+        notifyItemRangeInserted(getHeaderCount(), size);
+        int pos = linearLayoutManager.findFirstVisibleItemPosition();
+        linearLayoutManager.scrollToPositionWithOffset(pos + size, 0);
+    }
+
     /**
      * 下拉刷新，得到的新数据插入到原数据头部
      *
@@ -373,6 +421,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
             isReset = false;
         }
         isLoading = false;
+        isLoadingHeader = false;
         mDatas.clear();
         mDatas.addAll(datas);
         notifyDataSetChanged();
@@ -416,6 +465,10 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
         setLoadFailedView(Util.inflate(mContext, loadFailedId));
     }
 
+    public void setLoadHeaderFailedView(int loadFailedId) {
+        mLoadHeaderFailedView = Util.inflate(mContext, loadFailedId);
+    }
+
     /**
      * 初始化全部加载完成布局
      *
@@ -427,6 +480,10 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
 
     public void setLoadEndView(int loadEndId) {
         setLoadEndView(Util.inflate(mContext, loadEndId));
+    }
+
+    public void setLoadHeaderEndView(int loadEndId) {
+        mLoadHeanderEndView = Util.inflate(mContext, loadEndId);
     }
 
     /**
@@ -478,6 +535,7 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
             addFooterView(mLoadingView);
         }
         isLoading = false;
+        isLoadingHeader = false;
         isReset = true;
         isAutoLoadMore = true;
         mDatas.clear();
@@ -503,6 +561,31 @@ public abstract class BaseAdapter<T> extends RecyclerView.Adapter<RecyclerView.V
                 addFooterView(mLoadingView);
                 if (mLoadMoreListener != null) {
                     mLoadMoreListener.onLoadMore(true);
+                }
+            }
+        });
+    }
+
+    /**
+     * 数据加载完成
+     */
+    public void loadHeaderEnd() {
+        if (mLoadHeanderEndView != null) {
+            addHeaderView(mLoadHeanderEndView);
+        }
+    }
+
+    /**
+     * 数据加载失败
+     */
+    public void loadHeaderFailed() {
+        addHeaderView(mLoadHeaderFailedView);
+        mLoadHeaderFailedView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                addHeaderView(mLoadingHeaderView);
+                if (mLoadMoreListener != null) {
+                    mLoadMoreListener.onLoadPreviousMore();
                 }
             }
         });

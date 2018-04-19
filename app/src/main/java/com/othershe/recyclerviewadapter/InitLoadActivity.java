@@ -77,6 +77,11 @@ public class InitLoadActivity extends AppCompatActivity {
             public void onLoadMore(boolean isReload) {
                 loadMore();
             }
+
+            @Override
+            public void onLoadPreviousMore() {
+
+            }
         });
 
         //设置item点击事件监听

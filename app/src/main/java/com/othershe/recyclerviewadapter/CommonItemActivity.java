@@ -44,14 +44,21 @@ public class CommonItemActivity extends AppCompatActivity {
         mAdapter.setLoadingHeaderView(R.layout.load_loading_layout);
         //加载失败，更新footer view提示
         mAdapter.setLoadFailedView(R.layout.load_failed_layout);
+        mAdapter.setLoadHeaderFailedView(R.layout.load_failed_layout);
         //加载完成，更新footer view提示
         mAdapter.setLoadEndView(R.layout.load_end_layout);
+        mAdapter.setLoadHeaderEndView(R.layout.load_end_layout);
 
         //设置加载更多触发的事件监听
         mAdapter.setOnLoadMoreListener(new OnLoadMoreListener() {
             @Override
             public void onLoadMore(boolean isReload) {
                 loadMore();
+            }
+
+            @Override
+            public void onLoadPreviousMore() {
+                loadPreviousMore();
             }
         });
 
@@ -107,10 +114,33 @@ public class CommonItemActivity extends AppCompatActivity {
                 } else {
                     final List<String> data = new ArrayList<>();
                     for (int i = 0; i < 10; i++) {
-                        data.add("item--" + (mAdapter.getDataCount() + i));
+                        data.add("item " + (mAdapter.getDataCount() + i));
                     }
                     //刷新数据
                     mAdapter.setLoadMoreData(data);
+                }
+            }
+        }, 1000);
+    }
+
+    private void loadPreviousMore() {
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                if (mAdapter.getItemCount() >= 10 && isFailed) {
+                    isFailed = false;
+                    mAdapter.loadHeaderFailed();
+                } else if (mAdapter.getItemCount() >= 20) {
+                    mAdapter.loadHeaderEnd();
+                } else {
+                    final List<String> data = new ArrayList<>();
+                    for (int i = 0; i >= -10; i--) {
+                        data.add("item " + i);
+                    }
+                    //刷新数据
+                    mAdapter.setLoadPreviousMoreData(data);
                 }
             }
         }, 1000);

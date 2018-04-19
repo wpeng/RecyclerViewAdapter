@@ -57,6 +57,11 @@ public class MultiItemActivity extends AppCompatActivity {
             public void onLoadMore(boolean isReload) {
                 loadMore();
             }
+
+            @Override
+            public void onLoadPreviousMore() {
+
+            }
         });
 
         mAdapter.setOnMultiItemClickListener(new OnMultiItemClickListeners<String>() {

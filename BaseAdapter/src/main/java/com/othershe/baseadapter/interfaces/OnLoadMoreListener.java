@@ -10,4 +10,6 @@ public interface OnLoadMoreListener {
      * @param isReload 是否是重新加载，只有加载失败后，点击重新加载时为true
      */
     void onLoadMore(boolean isReload);
+
+    void onLoadPreviousMore();
 }
